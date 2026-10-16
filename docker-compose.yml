@@ -1,0 +1,35 @@
+# Infraestructura local de Mova. Solo para desarrollo: las credenciales de
+# abajo no son secretos y no se usan fuera de tu máquina.
+#
+#   npm run db:up     levanta PostgreSQL y Mailpit
+#   npm run db:down   los detiene (los datos quedan en el volumen)
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: mova-postgres
+    environment:
+      POSTGRES_USER: mova
+      POSTGRES_PASSWORD: mova_local_only
+      POSTGRES_DB: mova
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - mova-pgdata:/var/lib/postgresql/data
+      - ./scripts/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mova -d mova"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Bandeja de email local: todo lo que envía Mova en desarrollo llega acá.
+  # Web: http://localhost:8025  ·  SMTP: localhost:1025
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: mova-mailpit
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  mova-pgdata:

@@ -1,0 +1,245 @@
+{
+  "_nota": "Set de evaluación de la etapa 3: 30 casos de 3 rubros. Criterio: cada formato pasa los validadores y una persona de Kodexa aprueba sin editar al menos 7 de cada 10 piezas.",
+  "cases": [
+    {
+      "id": "kodexa-01",
+      "brand": "kodexa",
+      "format": "CAROUSEL",
+      "title": "3 errores al pedir un sistema a medida",
+      "pillar": "Consejos",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-02",
+      "brand": "kodexa",
+      "format": "REEL",
+      "title": "Cuánto tiempo se pierde copiando datos a mano",
+      "pillar": "Consejos",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-03",
+      "brand": "kodexa",
+      "format": "FEED_IMAGE",
+      "title": "Qué es automatizar, en una frase",
+      "pillar": "Consejos",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-04",
+      "brand": "kodexa",
+      "format": "STORY",
+      "title": "Encuesta: ¿qué tarea repetís todos los días?",
+      "pillar": "Consejos",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-05",
+      "brand": "kodexa",
+      "format": "CAROUSEL",
+      "title": "Cómo trabajamos un proyecto, paso a paso",
+      "pillar": "Detrás de escena",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-06",
+      "brand": "kodexa",
+      "format": "REEL",
+      "title": "Un día en el equipo de Kodexa",
+      "pillar": "Detrás de escena",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-07",
+      "brand": "kodexa",
+      "format": "CAROUSEL",
+      "title": "Señales de que tu negocio necesita un sistema",
+      "pillar": "Consejos",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-08",
+      "brand": "kodexa",
+      "format": "FEED_IMAGE",
+      "title": "Caso: un turnero que ordenó una agenda",
+      "pillar": "Casos",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-09",
+      "brand": "kodexa",
+      "format": "STORY",
+      "title": "Preguntas frecuentes antes de contratar desarrollo",
+      "pillar": "Consejos",
+      "angle": ""
+    },
+    {
+      "id": "kodexa-10",
+      "brand": "kodexa",
+      "format": "REEL",
+      "title": "Planilla o sistema: cuándo conviene cada uno",
+      "pillar": "Consejos",
+      "angle": ""
+    },
+    {
+      "id": "cafe-01",
+      "brand": "cafe",
+      "format": "CAROUSEL",
+      "title": "Cómo preparar café en prensa francesa",
+      "pillar": "Cómo prepararlo en casa",
+      "angle": ""
+    },
+    {
+      "id": "cafe-02",
+      "brand": "cafe",
+      "format": "REEL",
+      "title": "El error más común al moler café",
+      "pillar": "Cómo prepararlo en casa",
+      "angle": ""
+    },
+    {
+      "id": "cafe-03",
+      "brand": "cafe",
+      "format": "FEED_IMAGE",
+      "title": "Nuevo origen: Etiopía",
+      "pillar": "Origen del café",
+      "angle": ""
+    },
+    {
+      "id": "cafe-04",
+      "brand": "cafe",
+      "format": "STORY",
+      "title": "Encuesta: ¿espresso o filtrado?",
+      "pillar": "La cafetería",
+      "angle": ""
+    },
+    {
+      "id": "cafe-05",
+      "brand": "cafe",
+      "format": "CAROUSEL",
+      "title": "Qué significa tueste medio",
+      "pillar": "Origen del café",
+      "angle": ""
+    },
+    {
+      "id": "cafe-06",
+      "brand": "cafe",
+      "format": "REEL",
+      "title": "Por qué tostamos los martes",
+      "pillar": "Origen del café",
+      "angle": ""
+    },
+    {
+      "id": "cafe-07",
+      "brand": "cafe",
+      "format": "FEED_IMAGE",
+      "title": "Curso de barista: inscripción abierta",
+      "pillar": "La cafetería",
+      "angle": ""
+    },
+    {
+      "id": "cafe-08",
+      "brand": "cafe",
+      "format": "STORY",
+      "title": "Un martes en el tostadero",
+      "pillar": "La cafetería",
+      "angle": ""
+    },
+    {
+      "id": "cafe-09",
+      "brand": "cafe",
+      "format": "CAROUSEL",
+      "title": "Cuánto café usar por taza",
+      "pillar": "Cómo prepararlo en casa",
+      "angle": ""
+    },
+    {
+      "id": "cafe-10",
+      "brand": "cafe",
+      "format": "REEL",
+      "title": "Cómo guardar el café en casa",
+      "pillar": "Cómo prepararlo en casa",
+      "angle": ""
+    },
+    {
+      "id": "contable-01",
+      "brand": "contable",
+      "format": "CAROUSEL",
+      "title": "Vencimientos de monotributo de este mes",
+      "pillar": "Vencimientos y fechas",
+      "angle": ""
+    },
+    {
+      "id": "contable-02",
+      "brand": "contable",
+      "format": "REEL",
+      "title": "Qué pasa si no te recategorizás",
+      "pillar": "Errores frecuentes",
+      "angle": ""
+    },
+    {
+      "id": "contable-03",
+      "brand": "contable",
+      "format": "FEED_IMAGE",
+      "title": "Recordatorio: vence la cuota del monotributo",
+      "pillar": "Vencimientos y fechas",
+      "angle": ""
+    },
+    {
+      "id": "contable-04",
+      "brand": "contable",
+      "format": "STORY",
+      "title": "Preguntas sobre la recategorización",
+      "pillar": "Errores frecuentes",
+      "angle": ""
+    },
+    {
+      "id": "contable-05",
+      "brand": "contable",
+      "format": "CAROUSEL",
+      "title": "5 papeles que tu pyme tiene que guardar",
+      "pillar": "Errores frecuentes",
+      "angle": ""
+    },
+    {
+      "id": "contable-06",
+      "brand": "contable",
+      "format": "REEL",
+      "title": "Conocé al equipo del estudio",
+      "pillar": "El equipo",
+      "angle": ""
+    },
+    {
+      "id": "contable-07",
+      "brand": "contable",
+      "format": "FEED_IMAGE",
+      "title": "Atención online para todo el país",
+      "pillar": "El equipo",
+      "angle": ""
+    },
+    {
+      "id": "contable-08",
+      "brand": "contable",
+      "format": "STORY",
+      "title": "Checklist antes de facturar",
+      "pillar": "Errores frecuentes",
+      "angle": ""
+    },
+    {
+      "id": "contable-09",
+      "brand": "contable",
+      "format": "CAROUSEL",
+      "title": "Monotributo vs. responsable inscripto",
+      "pillar": "Errores frecuentes",
+      "angle": ""
+    },
+    {
+      "id": "contable-10",
+      "brand": "contable",
+      "format": "REEL",
+      "title": "Cómo leer tu factura de monotributo",
+      "pillar": "Vencimientos y fechas",
+      "angle": ""
+    }
+  ]
+}

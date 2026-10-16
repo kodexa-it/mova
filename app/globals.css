@@ -1,0 +1,462 @@
+@import "tailwindcss";
+
+/*
+ * Sistema visual de Mova: tokens únicos. Todo color, radio, sombra, blur,
+ * tipografía y duración sale de acá; los componentes no usan valores sueltos.
+ * Documentación: docs/design/sistema-visual.md
+ */
+
+@theme {
+  /* Superficies */
+  --color-canvas: #fbfaf8; /* fondo: blanco cálido */
+  --color-surface: #ffffff; /* tarjetas, campos */
+  --color-pearl: #f2f1ee; /* gris perla: zonas hundidas, hover */
+  --color-pearl-strong: #e7e6e2;
+  --color-line: #e9e8e4; /* bordes delicados */
+  --color-line-strong: #d6d5d0;
+
+  /* Texto */
+  --color-ink: #1f2023; /* grafito */
+  --color-ink-2: #62656d; /* secundario, AA sobre canvas y perla */
+  --color-ink-3: #8b8e95; /* solo placeholders y deshabilitados */
+
+  /* Acento principal: acciones, foco, selección */
+  --color-accent: #3d3ad8;
+  --color-accent-hover: #322fbf;
+  --color-accent-press: #2a27a3;
+  --color-accent-soft: #eeeefc;
+
+  /* Firma del ecosistema Kodexa: solo decorativa, nunca texto ni acciones */
+  --color-kodexa: #fe6a00;
+
+  /* Estados (texto AA sobre blanco y su fondo suave) */
+  --color-success: #177049;
+  --color-success-soft: #e7f3ec;
+  --color-warning: #8a5a12;
+  --color-warning-soft: #fbf1de;
+  --color-danger: #c2382f;
+  --color-danger-hover: #a92f27;
+  --color-danger-soft: #fbeae8;
+
+  /* Tipografía */
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.125rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-lead: 1.0625rem;
+  --text-lead--line-height: 1.5rem;
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.75rem;
+  --text-title--letter-spacing: -0.012em;
+  --text-display: 1.875rem;
+  --text-display--line-height: 2.25rem;
+  --text-display--letter-spacing: -0.02em;
+  --text-hero: 2.875rem;
+  --text-hero--line-height: 1.04;
+  --text-hero--letter-spacing: -0.038em;
+
+  /* Forma */
+  --radius-badge: 6px;
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 20px;
+
+  /* Sombras suaves en capas */
+  --shadow-hairline: 0 0 0 1px rgb(20 20 25 / 0.06);
+  --shadow-raised: 0 1px 2px rgb(20 20 25 / 0.05), 0 0 0 1px rgb(20 20 25 / 0.05);
+  --shadow-floating: 0 2px 6px rgb(20 20 25 / 0.05), 0 12px 32px rgb(20 20 25 / 0.08), 0 0 0 1px rgb(20 20 25 / 0.05);
+  --shadow-overlay: 0 4px 12px rgb(20 20 25 / 0.06), 0 28px 72px rgb(20 20 25 / 0.16), 0 0 0 1px rgb(20 20 25 / 0.06);
+
+  /* Vidrio (solo capas flotantes: modales, toasts, popovers, menús) */
+  --blur-glass: 20px;
+
+  /* Movimiento */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: linear(0, 0.21 9%, 0.66 22%, 0.92 34%, 1.03 46%, 1.04 56%, 1.01 72%, 1);
+}
+
+:root {
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --glass-bg: rgb(255 255 255 / 0.72);
+  --glass-border: rgb(255 255 255 / 0.7);
+  --focus-ring: 0 0 0 3px rgb(61 58 216 / 0.28);
+}
+
+@layer base {
+  html {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+/* Cifras tabulares para métricas, fechas y conteos. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Vidrio: uso selectivo en capas flotantes. Con poca compatibilidad o si la
+   persona pide menos transparencia, cae a una superficie sólida. */
+@utility glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-overlay);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: var(--color-surface);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--color-surface);
+    backdrop-filter: none;
+  }
+}
+
+/* Entrada suave para contenido que aparece (avisos, resultados). */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@utility animate-rise-in {
+  animation: rise-in var(--dur-base) var(--ease-standard) both;
+}
+
+/* ─── Acceso: escenario de luz y momento de aprobación ─────────────────────── */
+
+/* Entrada escalonada: cada elemento define --i (orden). Una sola vez, al cargar. */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+}
+
+@utility animate-enter {
+  animation: enter 640ms var(--ease-standard) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+
+/* Respuesta a un error de envío: temblor horizontal breve. */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@utility animate-shake {
+  animation: shake 360ms var(--ease-standard);
+}
+
+/* Cintas de luz: deriva muy lenta para dar vida sin distraer. */
+@keyframes drift-a {
+  50% {
+    transform: translate3d(-3%, 2%, 0) rotate(-4deg) scale(1.04);
+  }
+}
+
+@keyframes drift-b {
+  50% {
+    transform: translate3d(4%, -3%, 0) rotate(5deg) scale(1.06);
+  }
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+}
+
+/* El estado de la pieza pasa de pendiente a aprobado. */
+@keyframes state-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(2px);
+  }
+}
+
+@keyframes state-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+@keyframes pill-tint {
+  to {
+    background-color: rgb(23 112 73 / 0.12);
+    color: var(--color-success);
+  }
+}
+
+/* Ancho de la etiqueta de estado: de "Pendiente de aprobación" a "Aprobado". */
+@keyframes pill-width {
+  from {
+    width: 10.25rem;
+  }
+  to {
+    width: 6.125rem;
+  }
+}
+
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 14;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes press {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.94);
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Vidrio sobre el campo de luz: más luminoso que el vidrio de la interfaz. */
+@utility glass-light {
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.5));
+  border: 1px solid rgb(255 255 255 / 0.7);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 1px 2px rgb(30 30 90 / 0.08),
+    0 24px 60px -12px rgb(30 28 120 / 0.35);
+  backdrop-filter: blur(28px) saturate(170%);
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgb(255 255 255 / 0.94);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background: rgb(255 255 255 / 0.96);
+    backdrop-filter: none;
+  }
+}
+
+@utility glass-veil {
+  background: rgb(255 255 255 / 0.34);
+  border: 1px solid rgb(255 255 255 / 0.38);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
+  backdrop-filter: blur(18px) saturate(150%);
+
+  @media (prefers-reduced-transparency: reduce) {
+    background: rgb(255 255 255 / 0.55);
+    backdrop-filter: none;
+  }
+}
+
+/* ─── Capas flotantes (Base UI) ───────────────────────────────────────────── */
+
+/* Aparición de popovers, menús y diálogos: escala y opacidad desde su origen.
+   Base UI marca el inicio y el fin con data-starting-style / data-ending-style. */
+@utility pop {
+  transform-origin: var(--transform-origin, center);
+  transition:
+    opacity var(--dur-base) var(--ease-standard),
+    scale var(--dur-base) var(--ease-spring);
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+    scale: 0.96;
+  }
+
+  &[data-ending-style] {
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-exit);
+  }
+}
+
+@utility fade {
+  transition: opacity var(--dur-base) var(--ease-standard);
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+  }
+}
+
+/* Notificaciones apiladas (patrón de Base UI adaptado a Mova). */
+.toast {
+  --gap: 0.625rem;
+  --peek: 0.625rem;
+  --scale: calc(max(0, 1 - (var(--toast-index) * 0.06)));
+  --shrink: calc(1 - var(--scale));
+  --height: var(--toast-frontmost-height, var(--toast-height));
+  --offset-y: calc(var(--toast-offset-y) * -1 + (var(--toast-index) * var(--gap) * -1) + var(--toast-swipe-movement-y));
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: 100%;
+  border-radius: 16px;
+  transform-origin: bottom center;
+  user-select: none;
+  z-index: calc(1000 - var(--toast-index));
+  height: var(--height);
+  transform: translateX(var(--toast-swipe-movement-x))
+    translateY(calc(var(--toast-swipe-movement-y) - (var(--toast-index) * var(--peek)) - (var(--shrink) * var(--height))))
+    scale(var(--scale));
+  transition:
+    transform 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 400ms,
+    height 150ms;
+
+  &[data-expanded] {
+    transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y));
+    height: var(--toast-height);
+  }
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    transform: translateY(130%);
+  }
+
+  &[data-limited] {
+    opacity: 0;
+  }
+
+  &[data-ending-style] {
+    opacity: 0;
+
+    &[data-swipe-direction="right"] {
+      transform: translateX(calc(var(--toast-swipe-movement-x) + 130%)) translateY(var(--offset-y));
+    }
+
+    &[data-swipe-direction="down"] {
+      transform: translateY(calc(var(--toast-swipe-movement-y) + 130%));
+    }
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: calc(var(--gap) + 1px);
+  }
+}
+
+.toast-content {
+  transition: opacity 250ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &[data-behind] {
+    opacity: 0;
+  }
+
+  &[data-expanded] {
+    opacity: 1;
+  }
+}
+
+/* Esqueleto de carga: un brillo lento que se apaga si se reduce el movimiento. */
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@utility skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--color-pearl) 0%, var(--color-pearl-strong) 50%, var(--color-pearl) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* El indicador de carga sigue girando: comunica estado, no decora. */
+  .motion-essential {
+    animation-duration: 900ms !important;
+    animation-iteration-count: infinite !important;
+  }
+}

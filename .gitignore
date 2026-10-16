@@ -1,0 +1,38 @@
+# Secretos: nunca se versionan. Solo .env.example (sin valores reales).
+.env
+.env.*
+!.env.example
+
+# Dependencias y builds
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Netlify
+.netlify/
+
+# Logs y temporales
+npm-debug.log*
+*.log
+.tmp/
+tmp/
+
+# Volcados de base y backups locales
+*.dump
+*.sql.gz
+backups/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Resultados del set de evaluación (pueden tener contenido generado)
+eval/results/

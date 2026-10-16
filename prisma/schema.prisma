@@ -1,0 +1,767 @@
+// Esquema de Mova. Base propia, independiente de Nexo y Nodo (ADR 0001).
+// Toda tabla de negocio lleva workspaceId (ADR 0002).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Identidad (Better Auth) ────────────────────────────────────────────────
+
+model User {
+  id            String       @id @default(cuid())
+  name          String
+  email         String       @unique
+  emailVerified Boolean      @default(false)
+  image         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  memberships   Membership[]
+  invitationsSent     Invitation[] @relation("InvitationInvitedBy")
+  invitationsAccepted Invitation[] @relation("InvitationAcceptedBy")
+  notifications       Notification[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// Límite de intentos de Better Auth, persistido en la base (no en memoria)
+// para que valga igual con varias instancias.
+model RateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
+}
+
+// ─── Multiempresa ───────────────────────────────────────────────────────────
+
+enum Role {
+  OWNER
+  EDITOR
+  APPROVER
+  VIEWER
+}
+
+model Workspace {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  // Borrado lógico: un workspace eliminado deja de ser accesible pero su
+  // auditoría se conserva.
+  deletedAt   DateTime?
+  // Presupuesto mensual de IA en micro-dólares (1 USD = 1.000.000). Hasta que
+  // existan los planes pagos (etapa 7c) se fija por workspace.
+  aiMonthlyBudgetMicros Int  @default(2000000)
+  // Límite mensual para imágenes generadas con IA (modo premium), aparte del
+  // de texto. Lo configura el Dueño en Uso de IA. 0 bloquea toda generación.
+  imageMonthlyBudgetMicros Int @default(1000000)
+  memberships Membership[]
+  invitations Invitation[]
+  auditLogs   AuditLog[]
+  brands      Brand[]
+  llmCalls    LlmCall[]
+  contentItems ContentItem[]
+  contentPlans ContentPlan[]
+  imageGenerations ImageGeneration[]
+  imageAssets      ImageAsset[]
+  jobs             Job[]
+  notifications    Notification[]
+  publications     Publication[]
+  metricSnapshots  MetricSnapshot[]
+  brandReferences  BrandReference[]
+}
+
+model Membership {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        Role
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model Invitation {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  email        String
+  role         Role
+  // Solo se guarda el hash SHA-256 del token; el token viaja una sola vez
+  // por email y no se puede reconstruir desde la base.
+  tokenHash    String    @unique
+  invitedById  String
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  acceptedById String?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy    User      @relation("InvitationInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  acceptedBy   User?     @relation("InvitationAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, email])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  workspaceId String
+  actorUserId String?
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+// ─── Marca (etapa 2) ─────────────────────────────────────────────────────────
+// Brand cuelga de Workspace para que una agencia pueda tener varias marcas más
+// adelante; en el MVP hay una por workspace (índice único). Toda tabla lleva
+// workspaceId para el aislamiento y para RLS (ADR 0004).
+
+enum EmojiPolicy {
+  NONE
+  FEW
+  FREE
+}
+
+enum BrandRuleKind {
+  ALWAYS
+  NEVER
+}
+
+model Brand {
+  id               String    @id @default(cuid())
+  workspaceId      String    @unique
+  name             String
+  industry         String    @default("")
+  description      String    @default("")
+  website          String?
+  audienceTimezone String    @default("America/Argentina/Buenos_Aires")
+  // Medición del criterio de la etapa 2: cuánto tarda en quedar configurada.
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  visual           BrandVisual?
+  voice            BrandVoice?
+  offerings        Offering[]
+  audiences        AudienceSegment[]
+  goals            BusinessGoal[]
+  pillars          ContentPillar[]
+  proofs           ProofItem[]
+  rules            BrandRule[]
+  contentItems     ContentItem[]
+  plans            ContentPlan[]
+}
+
+model BrandVisual {
+  id          String   @id @default(cuid())
+  workspaceId String
+  brandId     String   @unique
+  // Paleta: [{ name, hex }] en orden de importancia. La primera es la principal.
+  palette     Json     @default("[]")
+  headingFont String   @default("")
+  bodyFont    String   @default("")
+  imageStyle  String   @default("")
+  updatedAt   DateTime @updatedAt
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model BrandVoice {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  brandId      String      @unique
+  // Diales de 1 a 5. formality: 1 cercano, 5 formal. Y así para cada eje.
+  formality    Int         @default(3)
+  humor        Int         @default(2)
+  technicality Int         @default(3)
+  enthusiasm   Int         @default(3)
+  wordsToUse   String[]    @default([])
+  wordsToAvoid String[]    @default([])
+  emojiPolicy  EmojiPolicy @default(FEW)
+  examples     String[]    @default([])
+  updatedAt    DateTime    @updatedAt
+  brand        Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model Offering {
+  id          String  @id @default(cuid())
+  workspaceId String
+  brandId     String
+  position    Int
+  name        String
+  description String  @default("")
+  brand       Brand   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([brandId, position])
+}
+
+model AudienceSegment {
+  id          String   @id @default(cuid())
+  workspaceId String
+  brandId     String
+  position    Int
+  name        String
+  description String   @default("")
+  painPoints  String[] @default([])
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([brandId, position])
+}
+
+model BusinessGoal {
+  id          String @id @default(cuid())
+  workspaceId String
+  brandId     String
+  position    Int
+  title       String
+  // Cómo se mide: "consultas por WhatsApp", "visitas al sitio".
+  kpi         String @default("")
+  target      String @default("")
+  brand       Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([brandId, position])
+}
+
+model ContentPillar {
+  id          String @id @default(cuid())
+  workspaceId String
+  brandId     String
+  position    Int
+  name        String
+  description String @default("")
+  // Porcentaje de la semana. Los pilares de una marca suman 100.
+  weight      Int
+  brand       Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([brandId, position])
+}
+
+// Datos reales que se pueden publicar, siempre con su fuente. La IA no inventa
+// cifras ni testimonios: solo usa lo que está acá.
+model ProofItem {
+  id          String @id @default(cuid())
+  workspaceId String
+  brandId     String
+  position    Int
+  statement   String
+  source      String
+  brand       Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([brandId, position])
+}
+
+model BrandRule {
+  id          String        @id @default(cuid())
+  workspaceId String
+  brandId     String
+  position    Int
+  kind        BrandRuleKind
+  text        String
+  brand       Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([brandId, position])
+}
+
+// ─── IA (etapa 2) ────────────────────────────────────────────────────────────
+
+enum LlmCallStatus {
+  // Reservó presupuesto y está esperando al proveedor.
+  PENDING
+  SUCCEEDED
+  FAILED
+  // No se llamó al modelo porque el workspace no tenía presupuesto.
+  BLOCKED
+}
+
+// Cada llamada a un modelo, con tokens y costo. Se crea antes de llamar
+// (reserva el costo máximo) y se completa con el costo real al terminar.
+model LlmCall {
+  id             String        @id @default(cuid())
+  workspaceId    String
+  userId         String?
+  operation      String
+  provider       String
+  model          String
+  status         LlmCallStatus
+  inputTokens    Int           @default(0)
+  outputTokens   Int           @default(0)
+  // Costo en micro-dólares: reservado mientras está pendiente, real al final.
+  reservedMicros Int           @default(0)
+  costMicros     Int           @default(0)
+  durationMs     Int?
+  errorCode      String?
+  createdAt      DateTime      @default(now())
+  finishedAt     DateTime?
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+// ─── Contenido (etapa 3) ─────────────────────────────────────────────────────
+
+enum ContentFormat {
+  FEED_IMAGE
+  CAROUSEL
+  REEL
+  STORY
+}
+
+// Las transiciones válidas viven en modules/content/status.ts, con tests.
+enum ContentStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum VersionAuthor {
+  USER
+  AI
+}
+
+model ContentItem {
+  id               String          @id @default(cuid())
+  workspaceId      String
+  brandId          String?
+  format           ContentFormat
+  title            String
+  // Pilar y objetivo se guardan como texto: la marca reemplaza sus listas al
+  // editarse y la pieza tiene que conservar con qué se pensó.
+  pillar           String?
+  goal             String?
+  angle            String          @default("")
+  // Fecha y hora previstas de publicación. La pieza pertenece al plan de la
+  // semana de esa fecha, en la zona horaria del público de la marca.
+  scheduledFor     DateTime?
+  planId           String?
+  status           ContentStatus   @default(DRAFT)
+  currentVersionId String?         @unique
+  regenerations    Int             @default(0)
+  // Modo visual de la pieza: estándar (composiciones y render propio, sin
+  // costo) o con imágenes generadas por IA (premium, con costo por imagen).
+  visualMode       VisualMode      @default(STANDARD)
+  createdById      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  workspace        Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brand            Brand?          @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  plan             ContentPlan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  decisions        ApprovalDecision[]
+  comments         Comment[]
+  versions         ContentVersion[] @relation("ItemVersions")
+  currentVersion   ContentVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  imageGenerations ImageGeneration[]
+  imageAssets      ImageAsset[]
+  publication      Publication?
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, scheduledFor])
+  @@index([planId])
+}
+
+enum PlanSource {
+  MANUAL
+  AI
+}
+
+enum StrategyStatus {
+  NONE
+  PROPOSED
+  APPROVED
+}
+
+// Plan de una semana (lunes a domingo, en la zona horaria de la marca): el foco de la
+// semana y las piezas con fecha en ella. Uno por workspace y semana.
+model ContentPlan {
+  id          String        @id @default(cuid())
+  workspaceId String
+  brandId     String?
+  weekStart   DateTime      @db.Date
+  focus       String        @default("")
+  source      PlanSource    @default(MANUAL)
+  // Estrategia semanal propuesta por la IA a partir del foco. Una persona la
+  // revisa y la aprueba; al aprobarla se crean las piezas y se generan en
+  // segundo plano (Job). Forma: modules/plans/strategy.ts.
+  strategyStatus     StrategyStatus @default(NONE)
+  strategy           Json?
+  strategyLlmCallId  String?
+  strategyProposedAt DateTime?
+  strategyApprovedAt DateTime?
+  strategyApprovedById String?
+  // Cuándo se avisó que el contenido generado está listo (un solo aviso).
+  strategyNotifiedAt   DateTime?
+  createdById String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brand       Brand?        @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  items       ContentItem[]
+
+  @@unique([workspaceId, weekStart])
+}
+
+// Inmutable: cada cambio crea una versión nueva. El hash identifica el
+// contenido exacto que se aprueba (etapa 4).
+model ContentVersion {
+  id           String        @id @default(cuid())
+  workspaceId  String
+  itemId       String
+  number       Int
+  author       VersionAuthor
+  authorUserId String?
+  llmCallId    String?
+  content      Json
+  contentHash  String
+  validation   Json
+  verdict      String
+  createdAt    DateTime      @default(now())
+  item         ContentItem   @relation("ItemVersions", fields: [itemId], references: [id], onDelete: Cascade)
+  currentOf    ContentItem?  @relation("CurrentVersion")
+  decisions    ApprovalDecision[]
+
+  @@unique([itemId, number])
+  @@index([workspaceId])
+}
+
+enum ApprovalOutcome {
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+// Decisión de revisión sobre una versión exacta. Una aprobación guarda la
+// huella de lo que se aprobó: el hash del contenido, el de la apariencia
+// (paleta, nombre de la marca y versión de las plantillas) y el de cada imagen
+// renderizada. Si algo de eso cambia, la aprobación queda sin efecto
+// (invalidatedAt) y hay que volver a aprobar. Nunca se borra.
+model ApprovalDecision {
+  id            String          @id @default(cuid())
+  workspaceId   String
+  itemId        String
+  versionId     String
+  outcome       ApprovalOutcome
+  contentHash   String
+  visualHash    String          @default("")
+  renderVersion String          @default("")
+  frameHashes   String[]        @default([])
+  // Paleta y nombre con los que se renderizaron las imágenes aprobadas.
+  visual        Json?
+  note          String          @default("")
+  decidedById   String?
+  createdAt     DateTime        @default(now())
+  invalidatedAt DateTime?
+  invalidReason String?
+  item          ContentItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  version       ContentVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, createdAt])
+  @@index([workspaceId, outcome])
+}
+
+enum CommentKind {
+  COMMENT
+  CHANGE_REQUEST
+}
+
+// Comentarios de revisión de una pieza, con la versión que se estaba viendo.
+model Comment {
+  id          String      @id @default(cuid())
+  workspaceId String
+  itemId      String
+  versionId   String?
+  authorId    String?
+  kind        CommentKind @default(COMMENT)
+  body        String
+  createdAt   DateTime    @default(now())
+  item        ContentItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, createdAt])
+}
+
+// ─── Imágenes generadas con IA (modo premium) ───────────────────────────────
+
+enum VisualMode {
+  STANDARD
+  AI
+}
+
+enum ImageGenerationStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  BLOCKED
+}
+
+// Cada pedido pago a un proveedor de imágenes. Se registra antes de llamar
+// (con el costo estimado reservado) y se completa con el costo real.
+model ImageGeneration {
+  id              String                @id @default(cuid())
+  workspaceId     String
+  itemId          String
+  userId          String?
+  slotIndex       Int
+  layout          String
+  // Clave de la operación que confirmó la persona: un doble clic o un reintento
+  // de red no generan (ni cobran) dos veces.
+  requestKey      String
+  promptHash      String
+  prompt          String
+  provider        String
+  model           String
+  aspectRatio     String
+  imageSize       String
+  status          ImageGenerationStatus
+  estimatedMicros Int
+  reservedMicros  Int                   @default(0)
+  costMicros      Int                   @default(0)
+  // "usage": calculado con los tokens que informó el proveedor; "estimate":
+  // el proveedor no informó consumo y se registra la estimación.
+  costSource      String?
+  inputTokens     Int                   @default(0)
+  outputTokens    Int                   @default(0)
+  durationMs      Int?
+  errorCode       String?
+  assetId         String?               @unique
+  createdAt       DateTime              @default(now())
+  finishedAt      DateTime?
+  workspace       Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  item            ContentItem           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  asset           ImageAsset?           @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, requestKey])
+  @@index([workspaceId, createdAt])
+  @@index([itemId, promptHash])
+}
+
+// Archivo de una imagen generada. Inmutable: las versiones lo referencian por
+// id y huella (sha256). Vive en PostgreSQL por ahora (MVP); al desplegar se
+// puede mover a un almacenamiento de archivos sin cambiar las referencias.
+model ImageAsset {
+  id          String           @id @default(cuid())
+  workspaceId String
+  itemId      String
+  slotIndex   Int
+  // GENERATED: imagen generada con IA. UPLOAD: diseño final subido por el
+  // equipo (hecho por un diseñador o con otra herramienta).
+  source      String           @default("GENERATED")
+  uploadedById String?
+  sha256      String
+  mimeType    String
+  width       Int
+  height      Int
+  bytes       Bytes
+  createdAt   DateTime         @default(now())
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  item        ContentItem      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  generation  ImageGeneration?
+
+  @@index([workspaceId, itemId])
+}
+
+// ─── Tareas en segundo plano y avisos ───────────────────────────────────────
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+// Cola propia en PostgreSQL. Un proceso toma una tarea con FOR UPDATE SKIP
+// LOCKED; si muere a mitad, la tarea vuelve a tomarse cuando vence su lock.
+model Job {
+  id          String    @id @default(cuid())
+  workspaceId String
+  kind        String
+  payload     Json
+  // Agrupa las tareas de una misma operación (por ejemplo, la estrategia de una semana).
+  groupKey    String?
+  status      JobStatus @default(QUEUED)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(2)
+  runAfter    DateTime  @default(now())
+  lockedAt    DateTime?
+  lastError   String?
+  result      Json?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAfter])
+  @@index([workspaceId, groupKey])
+}
+
+// Aviso dentro de la app para una persona de un workspace (y, si corresponde,
+// también por email).
+model Notification {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  kind        String
+  title       String
+  body        String    @default("")
+  href        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, workspaceId, readAt])
+}
+
+// ─── Publicación y métricas (etapa 5) ───────────────────────────────────────
+
+// Registro manual de que una pieza se publicó: cuándo, dónde y con qué enlace.
+// Solo se puede registrar una versión aprobada y vigente; descargar no es
+// publicar. Queda atada a esa versión exacta (y a su aprobación).
+model Publication {
+  id           String           @id @default(cuid())
+  workspaceId  String
+  itemId       String           @unique
+  versionId    String
+  approvalId   String
+  channel      String           @default("INSTAGRAM")
+  publishedAt  DateTime
+  permalink    String
+  shortcode    String
+  recordedById String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  item         ContentItem      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  snapshots    MetricSnapshot[]
+
+  @@unique([workspaceId, shortcode])
+  @@index([workspaceId, publishedAt])
+}
+
+enum MetricSource {
+  MANUAL
+  APIFY_PUBLIC
+}
+
+// Medición de una publicación en un momento. Cada dato guarda su fuente: los
+// públicos (me gusta, comentarios, reproducciones) los lee Apify; los privados
+// (alcance, guardados, compartidos, visitas, consultas) se cargan a mano desde
+// las estadísticas de Instagram hasta tener la API de Meta.
+model MetricSnapshot {
+  id            String       @id @default(cuid())
+  workspaceId   String
+  publicationId String
+  source        MetricSource
+  capturedAt    DateTime     @default(now())
+  // Horas desde la publicación al medir (para comparar a la misma edad).
+  ageHours      Int
+  likes         Int?
+  comments      Int?
+  plays         Int?
+  saves         Int?
+  shares        Int?
+  reach         Int?
+  profileVisits Int?
+  inquiries     Int?
+  costMicros    Int          @default(0)
+  recordedById  String?
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publication   Publication  @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, publicationId, capturedAt])
+}
+
+// Imágenes de referencia de la marca (por ejemplo, carruseles que ya le
+// gustan). El brief de diseño pide usar solo estas como referencia visual.
+model BrandReference {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  label        String    @default("")
+  sha256       String
+  mimeType     String
+  width        Int
+  height       Int
+  bytes        Bytes
+  uploadedById String?
+  createdAt    DateTime  @default(now())
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}

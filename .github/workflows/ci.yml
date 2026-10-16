@@ -1,0 +1,80 @@
+# Integración continua de Mova: corre en cada push y pull request.
+# Usa una base PostgreSQL efímera; ningún secreto real.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: mova
+          POSTGRES_PASSWORD: mova_ci_only
+          POSTGRES_DB: mova
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mova -d mova"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://mova:mova_ci_only@localhost:5432/mova
+      TEST_DATABASE_URL: postgresql://mova:mova_ci_only@localhost:5432/mova_test
+      APP_URL: http://localhost:3000
+      EMAIL_TRANSPORT: console
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Secreto efímero de sesiones
+        run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
+      - name: Crear la base de tests
+        run: PGPASSWORD=mova_ci_only psql -h localhost -U mova -d mova -c "CREATE DATABASE mova_test"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Tests unitarios
+        run: npm test
+
+      - name: Migraciones
+        run: npm run db:deploy
+
+      - name: Tests de integración
+        run: npm run test:integration
+
+      - name: Build
+        run: npm run build
+
+      - name: Revisar el bundle del navegador
+        run: npm run check:bundle

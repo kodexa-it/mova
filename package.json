@@ -1,0 +1,61 @@
+{
+  "name": "mova",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mova: comunicación digital y captación de clientes con IA (Kodexa).",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "predev": "prisma generate",
+    "dev": "next dev",
+    "build": "next build",
+    "check:bundle": "node scripts/check-client-bundle.mjs",
+    "start": "next start",
+    "smoke": "node scripts/smoke.mjs http://localhost:3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "prisma migrate dev && prisma generate",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx --conditions=react-server --tsconfig tsconfig.json prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "doctor": "node scripts/doctor.mjs",
+    "worker": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/worker.mts",
+    "eval:content": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/eval-content.mts",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.8.0",
+    "@fontsource-variable/instrument-sans": "5.3.0",
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.8.0",
+    "better-auth": "1.6.26",
+    "next": "15.5.19",
+    "nodemailer": "7.0.13",
+    "pg": "8.23.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "0.0.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.7",
+    "@tailwindcss/postcss": "4.3.1",
+    "@types/node": "22.20.5",
+    "@types/nodemailer": "7.0.12",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "dotenv": "17.4.2",
+    "eslint": "9.39.4",
+    "eslint-config-next": "15.5.19",
+    "prisma": "7.8.0",
+    "tailwindcss": "4.3.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

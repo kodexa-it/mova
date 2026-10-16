@@ -1,0 +1,29 @@
+{
+  "_nota": "Marcas de prueba ficticias para el set de evaluación de la etapa 3. Kodexa se lee de la base (marca real).",
+  "cafe": {
+    "name": "Tostadero Ombú",
+    "industry": "Café de especialidad",
+    "description": "Tostamos café de especialidad en Villa Crespo y lo vendemos por kilo y en nuestra cafetería. Trabajamos con fincas de Colombia, Brasil y Etiopía.",
+    "website": null,
+    "offerings": [{ "name": "Café en grano por kilo", "description": "Tueste semanal" }, { "name": "Cafetería", "description": "Espresso y filtrados" }, { "name": "Cursos de barista", "description": "Grupos de 6 personas" }],
+    "audiences": [{ "name": "Vecinos que toman café todos los días", "description": "", "painPoints": ["El café del súper es amargo", "No saben cómo prepararlo en casa"] }],
+    "goals": [{ "title": "Vender más café por kilo", "kpi": "Pedidos por WhatsApp", "target": "" }],
+    "pillars": [{ "name": "Cómo prepararlo en casa", "description": "", "weight": 40 }, { "name": "Origen del café", "description": "", "weight": 30 }, { "name": "La cafetería", "description": "", "weight": 30 }],
+    "proofs": [{ "statement": "Tostamos todos los martes", "source": "Operación del tostadero" }],
+    "rules": [{ "kind": "NEVER", "text": "Hablar mal de otras cafeterías" }],
+    "voice": { "formality": 1, "humor": 3, "technicality": 2, "enthusiasm": 4, "wordsToUse": ["tueste", "origen"], "wordsToAvoid": ["gourmet", "premium"], "emojiPolicy": "FEW", "examples": [] }
+  },
+  "contable": {
+    "name": "Estudio Ferraro & Asociados",
+    "industry": "Estudio contable",
+    "description": "Llevamos la contabilidad e impuestos de pymes y monotributistas de Rosario. Atendemos de forma presencial y online.",
+    "website": null,
+    "offerings": [{ "name": "Monotributo", "description": "Altas, recategorizaciones y pagos" }, { "name": "Contabilidad para pymes", "description": "" }, { "name": "Sueldos", "description": "" }],
+    "audiences": [{ "name": "Monotributistas", "description": "", "painPoints": ["Miedo a quedar fuera de categoría", "No entienden los vencimientos"] }, { "name": "Dueños de pymes", "description": "", "painPoints": ["Falta de orden en los papeles"] }],
+    "goals": [{ "title": "Conseguir clientes nuevos de monotributo", "kpi": "Consultas por formulario", "target": "" }],
+    "pillars": [{ "name": "Vencimientos y fechas", "description": "", "weight": 40 }, { "name": "Errores frecuentes", "description": "", "weight": 35 }, { "name": "El equipo", "description": "", "weight": 25 }],
+    "proofs": [],
+    "rules": [{ "kind": "NEVER", "text": "Dar asesoramiento personalizado en una publicación" }, { "kind": "ALWAYS", "text": "Aclarar que las fechas pueden cambiar según ARCA" }],
+    "voice": { "formality": 4, "humor": 1, "technicality": 3, "enthusiasm": 2, "wordsToUse": ["claro", "a tiempo"], "wordsToAvoid": ["evasión", "truco"], "emojiPolicy": "NONE", "examples": [] }
+  }
+}
